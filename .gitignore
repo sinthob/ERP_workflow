@@ -1,0 +1,55 @@
+.history/
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+.idea/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+build/
+dist/
+*.egg-info/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# --- Env files (keep templates) ---
+**/.env
+**/.env.*
+!frappe_docker/example.env
+!**/*.env.example
+
+# --- Logs / temp ---
+*.log
+*.tmp
+*.swp
+
+# Archives / downloads
+*.zip
+
+# --- Node ---
+node_modules/
+
+# --- Frappe / Bench local data (only if bind-mounted in future) ---
+sites/
+logs/

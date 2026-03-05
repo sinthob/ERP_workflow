@@ -14,8 +14,4 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AvaloniaXaml Include="**\*.axaml" />
-  </ItemGroup>
-
 </Project>

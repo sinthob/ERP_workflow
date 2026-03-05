@@ -16,9 +16,10 @@ dotnet --version
 
 ```powershell
 cd .\avalonia
-dotnet restore .\ERPWorkflow.sln
 dotnet run --project .\Client\Client.csproj
 ```
+
+หมายเหตุ: โปรเจคนี้เป็นแบบ code-only (ไม่มี XAML) เพื่อลดจำนวนไฟล์
 
 ## ถ้าต้องการสร้างโปรเจคใหม่ (ทางเลือก)
 

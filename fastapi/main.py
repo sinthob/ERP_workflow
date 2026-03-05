@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import httpx
 from fastapi import FastAPI
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .settings import settings
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    erp_base_url: str = "http://localhost:8080"
+
+
+settings = Settings()
 
 app = FastAPI(title="ERP_workflow API", version="0.1.0")
 

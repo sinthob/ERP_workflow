@@ -46,8 +46,9 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn app.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 ```
+
 
 ทดสอบ:
 - http://localhost:8000/health
@@ -87,7 +88,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn app.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 ```
 
 3) รัน Avalonia:

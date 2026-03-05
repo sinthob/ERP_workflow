@@ -36,7 +36,22 @@ docker compose -f pwd.yml down
 
 ## FastAPI
 
-โฟลเดอร์ `fastapi/` ยังเป็นพื้นที่ว่างสำหรับทีมเพิ่มโค้ด/requirements เพิ่มเติม
+FastAPI เป็นตัวกลางให้ Avalonia เรียกใช้งาน และสามารถไปคุยกับ ERPNext ต่อได้
+
+รัน:
+
+```powershell
+cd .\fastapi
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
+
+ทดสอบ:
+- http://localhost:8000/health
+- http://localhost:8000/erp/ping
 
 ## Avalonia (Desktop)
 
@@ -67,18 +82,17 @@ docker compose -f pwd.yml up -d
 2) รัน FastAPI (ตัวอย่างแนวคิด):
 
 ```powershell
-# สมมติว่าทีมสร้าง fastapi/app/main.py และ requirements.txt แล้ว
 cd ..\fastapi
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+copy .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
 3) รัน Avalonia:
 
 ```powershell
-# สมมติว่าทีมสร้างโปรเจคไว้ในโฟลเดอร์ avalonia/ แล้ว
 dotnet run --project .\avalonia\Client\Client.csproj
 ```
 

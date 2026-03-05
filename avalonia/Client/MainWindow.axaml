@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Client.MainWindow"
+        Width="520" Height="240"
+        Title="ERP Workflow Client">
+
+  <StackPanel Margin="16" Spacing="12">
+    <TextBlock FontSize="18" Text="ERP Workflow Client" />
+
+    <TextBlock TextWrapping="Wrap">
+      FastAPI Base URL (แก้ได้ในโค้ด): http://localhost:8000
+    </TextBlock>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Name="HealthButton" Content="Check /health" Width="140" />
+      <Button Name="PingButton" Content="Ping ERP (/erp/ping)" Width="170" />
+    </StackPanel>
+
+    <TextBlock Name="StatusText" TextWrapping="Wrap" />
+  </StackPanel>
+
+</Window>

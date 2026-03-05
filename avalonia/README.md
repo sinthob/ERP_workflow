@@ -5,23 +5,36 @@
 ## Setup (Windows)
 
 1) ติดตั้ง .NET SDK 8
-2) ติดตั้ง Avalonia templates:
+
+ตรวจสอบ:
+
+```powershell
+dotnet --version
+```
+
+2) Restore + Run (โปรเจคตัวอย่างใน repo):
+
+```powershell
+cd .\avalonia
+dotnet restore .\ERPWorkflow.sln
+dotnet run --project .\Client\Client.csproj
+```
+
+## ถ้าต้องการสร้างโปรเจคใหม่ (ทางเลือก)
+
+ติดตั้ง Avalonia templates:
 
 ```powershell
 dotnet new install Avalonia.Templates
 ```
 
-3) สร้างโปรเจค (ตัวอย่าง):
+สร้างโปรเจค (ตัวอย่าง):
 
 ```powershell
-# จาก repo root
-mkdir avalonia
-cd avalonia
-
 dotnet new avalonia.app -o Client
 ```
 
-4) รัน:
+รัน:
 
 ```powershell
 dotnet run --project .\Client\Client.csproj
@@ -30,4 +43,5 @@ dotnet run --project .\Client\Client.csproj
 ## Dev with ERPNext
 
 - รัน ERPNext: `frappe_docker/pwd.yml` จะเปิดเว็บที่ `http://localhost:8080`
-- แนะนำให้ UI คุยกับ FastAPI (เช่น `http://localhost:8000`) แล้วให้ FastAPI ไปคุยกับ ERPNext ต่อ
+- รัน FastAPI: ดู `fastapi/README.md` (default `http://localhost:8000`)
+- ตัวอย่าง UI ใน `Client` มีปุ่มเรียก `GET /health` และ `GET /erp/ping`

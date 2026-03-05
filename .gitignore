@@ -50,6 +50,19 @@ env/
 # --- Node ---
 node_modules/
 
+# --- .NET / Avalonia ---
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.nupkg
+*.snupkg
+artifacts/
+
 # --- Frappe / Bench local data (only if bind-mounted in future) ---
 sites/
 logs/

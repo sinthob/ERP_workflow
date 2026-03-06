@@ -4,7 +4,7 @@
 
 ## Setup (Windows)
 
-1) ติดตั้ง .NET SDK 8
+1. ติดตั้ง .NET SDK 8
 
 ตรวจสอบ:
 
@@ -12,7 +12,7 @@
 dotnet --version
 ```
 
-2) Restore + Run (โปรเจคตัวอย่างใน repo):
+2. Restore + Run (โปรเจคตัวอย่างใน repo):
 
 ```powershell
 cd .\avalonia

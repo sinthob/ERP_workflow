@@ -49,8 +49,8 @@ copy .env.example .env
 uvicorn main:app --reload --port 8000
 ```
 
-
 ทดสอบ:
+
 - http://localhost:8000/health
 - http://localhost:8000/erp/ping
 
@@ -73,14 +73,14 @@ dotnet --version
 
 ### Workflow ตอน dev (รันคู่กัน)
 
-1) รัน ERPNext (Docker):
+1. รัน ERPNext (Docker):
 
 ```powershell
 cd .\frappe_docker
 docker compose -f pwd.yml up -d
 ```
 
-2) รัน FastAPI (ตัวอย่างแนวคิด):
+2. รัน FastAPI (ตัวอย่างแนวคิด):
 
 ```powershell
 cd ..\fastapi
@@ -91,12 +91,13 @@ copy .env.example .env
 uvicorn main:app --reload --port 8000
 ```
 
-3) รัน Avalonia:
+3. รัน Avalonia:
 
 ```powershell
 dotnet run --project .\avalonia\Client\Client.csproj
 ```
 
 หมายเหตุ:
+
 - ERPNext demo เปิดที่ `http://localhost:8080`
 - แนะนำให้ Avalonia เรียก FastAPI (เช่น `http://localhost:8000`) แล้วให้ FastAPI เป็นตัวกลางไป ERPNext เพื่อลดความซับซ้อนเรื่อง auth/CORS

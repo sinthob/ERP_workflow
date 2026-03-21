@@ -44,5 +44,10 @@ dotnet run --project .\Client\Client.csproj
 ## Dev with ERPNext
 
 - รัน ERPNext: `frappe_docker/pwd.yml` จะเปิดเว็บที่ `http://localhost:8080`
-- รัน FastAPI: ดู `fastapi/README.md` (default `http://localhost:8000`)
-- ตัวอย่าง UI ใน `Client` มีปุ่มเรียก `GET /health` และ `GET /erp/ping`
+- รัน FastAPI (Gateway): ดู `services/gateway-api/README.md` (default `http://localhost:8000`)
+- ตัวอย่าง UI ใน `Client` มีแท็บ:
+  - `Diagnostics` (เรียก `/health`, `/erp/ping` ของ operations-service)
+  - `Kanban` (เรียก `GET http://localhost:8003/kanban/board` และกด move สถานะได้)
+  - `Timeline` (เรียก `GET http://localhost:8003/timeline/tasks`)
+
+หมายเหตุ: Base URL ของ operations-service ถูกกำหนดไว้ในโค้ด `Client/MainWindow.cs` (default `http://localhost:8003`)

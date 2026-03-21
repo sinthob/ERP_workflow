@@ -8,7 +8,7 @@ FastAPI microservice สำหรับทีม 3: คุม workflow/state tra
 cd .\services\operations-service
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
 copy .env.example .env
 

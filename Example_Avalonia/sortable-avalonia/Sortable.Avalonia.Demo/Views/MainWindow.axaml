@@ -1,0 +1,167 @@
+<Window
+    x:Class="Sortable.Avalonia.Demo.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    xmlns:vm="using:Sortable.Avalonia.Demo.ViewModels"
+    Title="Sortable.Avalonia Demo"
+    MinWidth="800"
+    MinHeight="600"
+    d:DesignHeight="800"
+    d:DesignWidth="1280"
+    x:DataType="vm:MainWindowViewModel"
+    Icon="/Assets/avalonia-logo.ico"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <ui:NavigationView
+        x:Name="NavView"
+        IsBackButtonVisible="False"
+        IsPaneOpen="True"
+        IsSettingsVisible="False"
+        OpenPaneLength="230"
+        PaneDisplayMode="Left"
+        SelectionChanged="NavView_OnSelectionChanged">
+
+        <ui:NavigationView.PaneHeader>
+            <StackPanel Margin="12,8,12,4" Spacing="0">
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="Sortable.Avalonia" />
+                <TextBlock
+                    FontSize="11"
+                    Opacity="0.6"
+                    Text="Feature Demos" />
+            </StackPanel>
+        </ui:NavigationView.PaneHeader>
+
+        <ui:NavigationView.MenuItems>
+
+            <!--  Sorting  -->
+            <ui:NavigationViewItemHeader Content="Sorting" />
+
+            <ui:NavigationViewItem Content="Task Queue" Tag="VerticalList">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="List" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Pipeline Stages" Tag="HorizontalStack">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="ViewAll" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Dashboard Grid" Tag="GridLayout">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Manage" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <!--  Control Features  -->
+            <ui:NavigationViewItemHeader Content="Control Features" />
+
+            <ui:NavigationViewItem Content="Drag Handle" Tag="DragHandle">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="MoreVertical" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Multiple Groups" Tag="MultipleGroups">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Folder" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Disabled Items" Tag="DisabledItems">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Filter" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Sortable Only" Tag="SortableOnly">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Sort" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Droppable Only" Tag="DroppableOnly">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Import" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Custom Drag Template" Tag="DraggingTemplate">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="List" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <!--  Cross-Collection  -->
+            <ui:NavigationViewItemHeader Content="Cross-Collection" />
+
+            <ui:NavigationViewItem Content="Cross-Collection Transfer" Tag="CrossCollectionInteraction">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Sync" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Kanban Board" Tag="Kanban">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="AllApps" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Conditional Acceptance" Tag="ConditionalAcceptance">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Find" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <!--  Modes  -->
+            <ui:NavigationViewItemHeader Content="Transfer &amp; Sort Modes" />
+
+            <ui:NavigationViewItem Content="Playlist (Sort Mode)" Tag="SortMode">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="MusicInfo" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="On-Call Roster (Swap)" Tag="SwapMode">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="People" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Template Library (Copy)" Tag="CopyMode">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Copy" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Team Swap (Cross)" Tag="CrossSwap">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Switch" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Grid Swap" Tag="UniformGridSwap">
+                <ui:NavigationViewItem.IconSource>
+                    <ui:SymbolIconSource Symbol="Shuffle" />
+                </ui:NavigationViewItem.IconSource>
+            </ui:NavigationViewItem>
+
+        </ui:NavigationView.MenuItems>
+
+        <!--  Main content area  -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ContentControl x:Name="DemoContent" />
+        </ScrollViewer>
+
+    </ui:NavigationView>
+</Window>

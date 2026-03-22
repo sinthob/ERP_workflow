@@ -1,0 +1,134 @@
+﻿<UserControl
+    x:Class="Sortable.Avalonia.Demo.Views.Demos.UniformGridProgrammaticDemoView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Sortable.Avalonia.Demo.Models"
+    xmlns:sortable="clr-namespace:Sortable.Avalonia;assembly=Sortable.Avalonia"
+    xmlns:vm="using:Sortable.Avalonia.Demo.ViewModels.Demos"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    x:DataType="vm:UniformGridProgrammaticDemoViewModel"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:UniformGridProgrammaticDemoViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="UniformGrid Programmatic Animation" />
+            <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="Use buttons to move items across UniformGrid collections in code and observe programmatic transfer animation."
+                TextWrapping="Wrap" />
+            <ui:InfoBar
+                IsClosable="False"
+                IsOpen="True"
+                Message="Items animate when moved programmatically between uniform grid collections."
+                Severity="Informational"
+                Title="Tip" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Theme="{StaticResource AccentButtonTheme}" Command="{Binding MoveTopAToBCommand}" Content="Move Top A to B" />
+                <Button Command="{Binding MoveTopBToACommand}" Content="Move Top B to A" />
+                <Button Command="{Binding MoveRandomDirectionCommand}" Content="Move Random Direction" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                <Border
+                    Grid.Column="0"
+                    Padding="12"
+                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontWeight="SemiBold" Text="Lane A" />
+                        <ItemsControl
+                            sortable:Sortable.DropCommand="{Binding ItemDroppedCommand}"
+                            sortable:Sortable.Droppable="True"
+                            sortable:Sortable.Group="uniformgrid-programmatic"
+                            sortable:Sortable.Sortable="True"
+                            sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                            ItemsSource="{Binding LaneA}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid
+                                        ColumnSpacing="8"
+                                        Columns="2"
+                                        RowSpacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:SortableItem">
+                                    <Border
+                                        MinHeight="64"
+                                        Padding="8"
+                                        sortable:Sortable.IsDroppable="True"
+                                        sortable:Sortable.IsSortable="True"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Cursor="Hand">
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Name}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Grid.Column="1"
+                    Padding="12"
+                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontWeight="SemiBold" Text="Lane B" />
+                        <ItemsControl
+                            sortable:Sortable.DropCommand="{Binding ItemDroppedCommand}"
+                            sortable:Sortable.Droppable="True"
+                            sortable:Sortable.Group="uniformgrid-programmatic"
+                            sortable:Sortable.Sortable="True"
+                            sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                            ItemsSource="{Binding LaneB}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid
+                                        ColumnSpacing="8"
+                                        Columns="2"
+                                        RowSpacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:SortableItem">
+                                    <Border
+                                        MinHeight="64"
+                                        Padding="8"
+                                        sortable:Sortable.IsDroppable="True"
+                                        sortable:Sortable.IsSortable="True"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Cursor="Hand">
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Name}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

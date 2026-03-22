@@ -1,0 +1,121 @@
+﻿<UserControl
+    x:Class="Sortable.Avalonia.Demo.Views.Demos.CrossCollectionProgrammaticDemoView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Sortable.Avalonia.Demo.Models"
+    xmlns:sortable="clr-namespace:Sortable.Avalonia;assembly=Sortable.Avalonia"
+    xmlns:vm="using:Sortable.Avalonia.Demo.ViewModels.Demos"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    x:DataType="vm:CrossCollectionProgrammaticDemoViewModel"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:CrossCollectionProgrammaticDemoViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="Cross-Collection Programmatic Animation" />
+            <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="Use the buttons to move items across collections in code; the engine now animates source-to-target travel and sibling reflow."
+                TextWrapping="Wrap" />
+            <ui:InfoBar
+                IsClosable="False"
+                IsOpen="True"
+                Message="Programmatic mutations animate smoothly when items move between collections."
+                Severity="Informational"
+                Title="Tip" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Theme="{StaticResource AccentButtonTheme}" Command="{Binding MoveTopAToBCommand}" Content="Move Top A to B" />
+                <Button Command="{Binding MoveTopBToACommand}" Content="Move Top B to A" />
+                <Button Command="{Binding MoveRandomDirectionCommand}" Content="Move Random Direction" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                <Border
+                    Grid.Column="0"
+                    Padding="12"
+                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontWeight="SemiBold" Text="Queue A" />
+                        <ItemsControl
+                            sortable:Sortable.DropCommand="{Binding ItemDroppedCommand}"
+                            sortable:Sortable.Droppable="True"
+                            sortable:Sortable.Group="cross-programmatic"
+                            sortable:Sortable.Sortable="True"
+                            sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                            ItemsSource="{Binding QueueA}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:SortableItem">
+                                    <Border
+                                        MinHeight="54"
+                                        Padding="12"
+                                        sortable:Sortable.IsDroppable="True"
+                                        sortable:Sortable.IsSortable="True"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Cursor="Hand">
+                                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Grid.Column="1"
+                    Padding="12"
+                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="8">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontWeight="SemiBold" Text="Queue B" />
+                        <ItemsControl
+                            sortable:Sortable.DropCommand="{Binding ItemDroppedCommand}"
+                            sortable:Sortable.Droppable="True"
+                            sortable:Sortable.Group="cross-programmatic"
+                            sortable:Sortable.Sortable="True"
+                            sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                            ItemsSource="{Binding QueueB}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:SortableItem">
+                                    <Border
+                                        MinHeight="54"
+                                        Padding="12"
+                                        sortable:Sortable.IsDroppable="True"
+                                        sortable:Sortable.IsSortable="True"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Cursor="Hand">
+                                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

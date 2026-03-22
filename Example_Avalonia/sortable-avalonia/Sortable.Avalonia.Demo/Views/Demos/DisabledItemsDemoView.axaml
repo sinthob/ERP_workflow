@@ -1,0 +1,149 @@
+﻿<UserControl
+    x:Class="Sortable.Avalonia.Demo.Views.Demos.DisabledItemsDemoView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:demo="clr-namespace:Sortable.Avalonia.Demo"
+    xmlns:models="using:Sortable.Avalonia.Demo.Models"
+    xmlns:sortable="clr-namespace:Sortable.Avalonia;assembly=Sortable.Avalonia"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    xmlns:vm="using:Sortable.Avalonia.Demo.ViewModels.Demos"
+    xmlns:logmodels="using:Sortable.Avalonia.Demo.Models"
+    x:DataType="vm:DisabledItemsDemoViewModel"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:DisabledItemsDemoViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Change Freeze — Locked Items" />
+            <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="Items marked FROZEN are locked during the change window. Draggable items show a grip handle and hand cursor; locked items show a no-entry cursor and faded content."
+                TextWrapping="Wrap" />
+            <ui:InfoBar
+                IsClosable="False"
+                IsOpen="True"
+                Message="Items with IsSortable=False cannot be dragged or displaced. They also get a visual FROZEN badge, muted accent strip, and faded text to make the lock state immediately obvious."
+                Severity="Informational"
+                Title="Tip" />
+            <Border
+                MaxWidth="580"
+                Padding="12"
+                HorizontalAlignment="Left"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                CornerRadius="8">
+                <ItemsControl
+                    sortable:Sortable.Sortable="True"
+                    sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                    ItemsSource="{Binding MixedSortableList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="6" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:SortableItem">
+                            <Border
+                                sortable:Sortable.IsSortable="{Binding Sortable}"
+                                Background="{Binding Sortable, Converter={x:Static demo:BoolToColorConverter.Instance}}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Cursor="{Binding Sortable, Converter={x:Static demo:BoolToCursorConverter.Instance}}">
+                                <Grid ColumnDefinitions="4,*">
+                                    <!--  Accent strip: blue for movable, muted for locked  -->
+                                    <Border
+                                        Grid.Column="0"
+                                        Background="{Binding Sortable, Converter={x:Static demo:BoolToStripColorConverter.Instance}}"
+                                        CornerRadius="5,0,0,5" />
+                                    <!--  Content row  -->
+                                    <Grid
+                                        Grid.Column="1"
+                                        ColumnDefinitions="Auto,*,Auto"
+                                        ColumnSpacing="10"
+                                        Margin="10,10">
+                                        <!--  Drag icon / lock icon  -->
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            FontSize="18"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Tag}" />
+                                        <!--  Name + note — faded when locked  -->
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Opacity="{Binding Sortable, Converter={x:Static demo:BoolToOpacityConverter.Instance}}"
+                                            VerticalAlignment="Center"
+                                            Spacing="2">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                Text="{Binding Note}" />
+                                        </StackPanel>
+                                        <!--  Status badge: MOVABLE (subtle) or FROZEN (accent red-ish)  -->
+                                        <Border
+                                            Grid.Column="2"
+                                            Padding="7,3"
+                                            VerticalAlignment="Center"
+                                            Background="{Binding Sortable, Converter={x:Static demo:BoolToStripColorConverter.Instance}}"
+                                            CornerRadius="4">
+                                            <TextBlock
+                                                FontSize="10"
+                                                FontWeight="Bold"
+                                                Foreground="White"
+                                                Text="{Binding Sortable, Converter={x:Static demo:BoolToIconConverter.Instance}}" />
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+            <!-- Event Log Panel -->
+            <Border
+                Padding="12"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon FontSize="14" Symbol="Clock" VerticalAlignment="Center" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Text="Event Log" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Command="{Binding ClearEventLogCommand}" Content="Clear" />
+                    </Grid>
+                    <Border Height="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" Opacity="0.5" />
+                    <ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding EventLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="logmodels:EventLogEntry">
+                                    <Grid ColumnDefinitions="55,20,*" ColumnSpacing="6" Margin="0,2">
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Time}" />
+                                        <TextBlock Grid.Column="1" FontSize="13" VerticalAlignment="Center" Text="{Binding Emoji}" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            FontSize="12"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Message}"
+                                            TextWrapping="Wrap" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

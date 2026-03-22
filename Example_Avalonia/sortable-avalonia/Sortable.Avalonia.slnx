@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Sortable.Avalonia.Demo/Sortable.Avalonia.Demo.csproj" />
+  <Project Path="Sortable.Avalonia/Sortable.Avalonia.csproj" />
+</Solution>

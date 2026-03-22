@@ -1,0 +1,137 @@
+﻿<UserControl
+    x:Class="Sortable.Avalonia.Demo.Views.Demos.UniformGridSwapDemoView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:logmodels="using:Sortable.Avalonia.Demo.Models"
+    xmlns:models="using:Sortable.Avalonia.Demo.Models"
+    xmlns:sortable="clr-namespace:Sortable.Avalonia;assembly=Sortable.Avalonia"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    xmlns:vm="using:Sortable.Avalonia.Demo.ViewModels.Demos"
+    x:DataType="vm:UniformGridSwapDemoViewModel"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:UniformGridSwapDemoViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Service Grid — Swap Mode" />
+            <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="Drag one service tile directly onto another to exchange their positions. All other tiles remain in place — a clean 1-for-1 swap inside a UniformGrid layout."
+                TextWrapping="Wrap" />
+            <ui:InfoBar
+                IsClosable="False"
+                IsOpen="True"
+                Message="Swap Mode on a UniformGrid: dragging tile A onto tile B swaps their positions. No other tiles move."
+                Severity="Informational"
+                Title="Swap Mode" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Theme="{StaticResource AccentButtonTheme}" Command="{Binding SwapGridItemsCommand}" Content="Swap First &amp; Last" />
+                <Button Command="{Binding RandomizeGridSwapCommand}" Content="Randomize Grid" />
+            </StackPanel>
+
+            <ItemsControl
+                sortable:Sortable.Mode="Swap"
+                sortable:Sortable.Sortable="True"
+                sortable:Sortable.UpdateCommand="{Binding ItemUpdatedCommand}"
+                ItemsSource="{Binding GridSwapItems}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid ColumnSpacing="10" Columns="4" RowSpacing="10" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:SortableItem">
+                        <Border
+                            MinHeight="100"
+                            sortable:Sortable.IsSortable="True"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Cursor="Hand">
+                            <StackPanel
+                                Margin="10,12"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="6">
+                                <Border
+                                    Width="44"
+                                    Height="44"
+                                    HorizontalAlignment="Center"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="12">
+                                    <TextBlock
+                                        FontSize="22"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Text="{Binding Tag}" />
+                                </Border>
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center"
+                                    Text="{Binding Name}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    Text="{Binding Note}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Event Log Panel -->
+            <Border
+                Padding="12"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon FontSize="14" Symbol="Clock" VerticalAlignment="Center" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Text="Event Log" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Command="{Binding ClearEventLogCommand}" Content="Clear" />
+                    </Grid>
+                    <Border Height="1" Background="{DynamicResource CardStrokeColorDefaultBrush}" Opacity="0.5" />
+                    <ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding EventLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="logmodels:EventLogEntry">
+                                    <Grid ColumnDefinitions="55,20,*" ColumnSpacing="6" Margin="0,2">
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Time}" />
+                                        <TextBlock Grid.Column="1" FontSize="13" VerticalAlignment="Center" Text="{Binding Emoji}" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            FontSize="12"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Message}"
+                                            TextWrapping="Wrap" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -126,22 +126,6 @@ class ERPNextClient:
             resp.raise_for_status()
             return resp.json()
 
-    async def set_field_value(self, doctype: str, name: str, fieldname: str, value: Any) -> dict[str, Any]:
-        """Write a single field directly via frappe.client.set_value, bypassing submit/save validators."""
-        async with httpx.AsyncClient(timeout=self._timeout) as client:
-            resp = await client.post(
-                self._url("/api/method/frappe.client.set_value"),
-                data={
-                    "doctype": doctype,
-                    "name": name,
-                    "fieldname": fieldname,
-                    "value": str(value),
-                },
-                headers=self._auth_header,
-            )
-            resp.raise_for_status()
-            return resp.json()
-
     async def _ensure_force_status_script(self) -> None:
         """Create the Server Script in ERPNext if it doesn't exist yet (idempotent)."""
         async with httpx.AsyncClient(timeout=self._timeout) as client:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -151,6 +153,26 @@ def _drop_none(payload: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in payload.items() if v is not None}
 
 
+# ---- Gateway-side metadata store (custom WO titles) ----
+# Titles are managed by this service; ERPNext is accessed via standard REST API only.
+_TITLE_STORE = Path(__file__).parent / "wo_titles.json"
+
+
+def _load_wo_titles() -> dict[str, str]:
+    if _TITLE_STORE.exists():
+        try:
+            return json.loads(_TITLE_STORE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_wo_title(wo_name: str, title: str) -> None:
+    titles = _load_wo_titles()
+    titles[wo_name] = title
+    _TITLE_STORE.write_text(json.dumps(titles, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def parse_erpnext_datetime(value: Any) -> datetime | None:
     if not value:
         return None
@@ -189,8 +211,11 @@ def _to_work_order_summary(raw: dict[str, Any]) -> WorkOrderSummary | None:
     except (TypeError, ValueError):
         qty_f = None
 
+    titles = _load_wo_titles()
     return WorkOrderSummary(
         name=str(name),
+        title=titles.get(str(name)),
+        item_name=raw.get("item_name"),
         production_item=raw.get("production_item"),
         sales_order=raw.get("sales_order"),
         status=raw.get("status"),
@@ -330,7 +355,7 @@ async def list_work_orders(
 
     rows = await erp.list_resource(
         "Work Order",
-        fields=["name", "production_item", "sales_order", "status", "qty", "modified"],
+        fields=["name", "item_name", "production_item", "sales_order", "status", "qty", "modified"],
         filters=filters,
         limit_page_length=limit,
         limit_start=offset,
@@ -355,13 +380,17 @@ async def get_work_order(name: str, erp: ERPNextClient = Depends(get_erp)) -> di
 
 @app.post("/work-orders", responses={400: {"model": ErrorResponse}})
 async def create_work_order(body: WorkOrderCreate, erp: ERPNextClient = Depends(get_erp)) -> dict[str, Any]:
+    custom_title = body.title
     payload = _drop_none(body.model_dump())
+    payload.pop("title", None)  # title is stored in gateway service, not sent to ERPNext
     try:
         created = await erp.create_doc("Work Order", payload)
         # Submit WO immediately so it enters "Not Started" state and can be transitioned
         wo_name = (created.get("data") or {}).get("name") or created.get("name")
         if wo_name:
             await erp.submit_doc("Work Order", wo_name)
+            if custom_title and wo_name:
+                _save_wo_title(wo_name, custom_title)  # stored in gateway service only
         return created
     except httpx.HTTPStatusError as ex:
         _raise_upstream_error(ex)

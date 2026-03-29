@@ -48,6 +48,7 @@ class SalesOrderSummary(BaseModel):
 
 class WorkOrderCreate(BaseModel):
     company: str = Field(..., min_length=1)
+    title: str | None = None  # Custom WO name stored in gateway service (wo_titles.json)
     production_item: str = Field(..., min_length=1)
     qty: float = Field(..., gt=0)
     bom_no: str = Field(..., min_length=1)
@@ -72,6 +73,8 @@ class WorkOrderUpdate(BaseModel):
 
 class WorkOrderSummary(BaseModel):
     name: str
+    title: str | None = None
+    item_name: str | None = None
     production_item: str | None = None
     sales_order: str | None = None
     status: str | None = None

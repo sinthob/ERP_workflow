@@ -25,6 +25,8 @@ public sealed class SalesOrderRow
 public sealed class WorkOrderRow
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("title")] public string? Title { get; set; }
+    [JsonPropertyName("item_name")] public string? ItemName { get; set; }
     [JsonPropertyName("production_item")] public string? ProductionItem { get; set; }
     [JsonPropertyName("status")] public string? Status { get; set; }
     [JsonPropertyName("qty")] public double? Qty { get; set; }
@@ -496,6 +498,8 @@ public sealed class MainWindow : Window
 
         var woQtyBox = new TextBox { Watermark = "Qty *", Width = 60, Text = "1" };
 
+        var woTitleBox = new TextBox { Watermark = "WO Name (opt.)", Width = 140 };
+
         var warehouseBox = new AutoCompleteBox
         {
             Watermark = "Target Warehouse *",
@@ -539,7 +543,7 @@ public sealed class MainWindow : Window
             Children =
         {
             new TextBlock { Text = "+ New WO:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold },
-            companyBox, prodItemBox, woQtyBox, warehouseBox, wipWarehouseBox, bomBox,
+            woTitleBox, companyBox, prodItemBox, woQtyBox, warehouseBox, wipWarehouseBox, bomBox,
             MakeBtn("Create", async (_, _) =>
             {
                 var body = new Dictionary<string, object?>
@@ -552,6 +556,8 @@ public sealed class MainWindow : Window
                     ["wip_warehouse"] = ExtractItemCode(wipWarehouseBox.Text),
                     ["sales_order"] = salesOrder,
                 };
+                if (!string.IsNullOrWhiteSpace(woTitleBox.Text))
+                    body["title"] = woTitleBox.Text.Trim();
                 Log(await _api.PostAsync("/work-orders", body));
                 ShowWorkOrders(salesOrder);
             }),
@@ -1085,13 +1091,29 @@ public sealed class MainWindow : Window
         topRow.Children.Add(dateTb);
         content.Children.Add(topRow);
 
+        // WO bold heading: custom title → item_name → system name (priority order)
+        var displayTitle = !string.IsNullOrWhiteSpace(wo.Title)
+            ? wo.Title
+            : !string.IsNullOrWhiteSpace(wo.ItemName)
+                ? wo.ItemName
+                : wo.Name;
+
         // WO Name (bold title)
         content.Children.Add(new TextBlock
         {
-            Text = wo.Name,
+            Text = displayTitle,
             FontSize = 14,
             FontWeight = FontWeight.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(25, 25, 55)),
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        // Always show system name as sub-text
+        content.Children.Add(new TextBlock
+        {
+            Text = wo.Name,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 160)),
             TextWrapping = TextWrapping.Wrap,
         });
 

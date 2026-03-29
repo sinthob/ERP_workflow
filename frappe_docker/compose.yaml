@@ -33,6 +33,7 @@ services:
         bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
         bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
         bench set-config -gp socketio_port $$SOCKETIO_PORT;
+        bench set-config -gp server_script_enabled 1;
     environment:
       DB_HOST: ${DB_HOST:-}
       DB_PORT: ${DB_PORT:-}
@@ -89,6 +90,19 @@ services:
     <<: *backend_defaults
     platform: linux/amd64
     command: bench schedule
+
+  operations-service:
+    build:
+      context: ../services/gateway-api
+      dockerfile: Dockerfile
+    container_name: operations-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      ERP_BASE_URL: http://host.docker.internal:8081
+      ERP_API_KEY: ""
+      ERP_API_SECRET: ""
 
 # ERPNext requires local assets access (Frappe does not)
 volumes:

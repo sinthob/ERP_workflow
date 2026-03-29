@@ -26,47 +26,76 @@ uvicorn main:app --reload --port 8000
 Thin proxy ไปที่ ERPNext REST (`/api/resource/...`) สำหรับ master data หลัก
 
 - Customers
-	- `GET /master/customers`
-	- `GET /master/customers/{name}`
-	- `POST /master/customers`
-	- `PUT /master/customers/{name}`
-	- `DELETE /master/customers/{name}`
-	- `POST /master/customers/bulk-import`
+  - `GET /master/customers`
+  - `GET /master/customers/{name}`
+  - `POST /master/customers`
+  - `PUT /master/customers/{name}`
+  - `DELETE /master/customers/{name}`
+  - `POST /master/customers/bulk-import`
 - Suppliers
-	- `GET /master/suppliers`
-	- `GET /master/suppliers/{name}`
-	- `POST /master/suppliers`
-	- `PUT /master/suppliers/{name}`
-	- `DELETE /master/suppliers/{name}`
-	- `POST /master/suppliers/bulk-import`
+  - `GET /master/suppliers`
+  - `GET /master/suppliers/{name}`
+  - `POST /master/suppliers`
+  - `PUT /master/suppliers/{name}`
+  - `DELETE /master/suppliers/{name}`
+  - `POST /master/suppliers/bulk-import`
 - Items
-	- `GET /master/items`
-	- `GET /master/items/{name}`
-	- `POST /master/items`
-	- `PUT /master/items/{name}`
-	- `DELETE /master/items/{name}`
-	- `POST /master/items/bulk-import`
+  - `GET /master/items`
+  - `GET /master/items/{name}`
+  - `POST /master/items`
+  - `PUT /master/items/{name}`
+  - `DELETE /master/items/{name}`
+  - `POST /master/items/bulk-import`
 - Units of Measure (UOM)
-	- `GET /master/uoms`
-	- `GET /master/uoms/{name}`
-	- `POST /master/uoms`
-	- `PUT /master/uoms/{name}`
-	- `DELETE /master/uoms/{name}`
-	- `POST /master/uoms/bulk-import`
+  - `GET /master/uoms`
+  - `GET /master/uoms/{name}`
+  - `POST /master/uoms`
+  - `PUT /master/uoms/{name}`
+  - `DELETE /master/uoms/{name}`
+  - `POST /master/uoms/bulk-import`
 - Price Lists
-	- `GET /master/price-lists`
-	- `GET /master/price-lists/{name}`
-	- `POST /master/price-lists`
-	- `PUT /master/price-lists/{name}`
-	- `DELETE /master/price-lists/{name}`
-	- `POST /master/price-lists/bulk-import`
+  - `GET /master/price-lists`
+  - `GET /master/price-lists/{name}`
+  - `POST /master/price-lists`
+  - `PUT /master/price-lists/{name}`
+  - `DELETE /master/price-lists/{name}`
+  - `POST /master/price-lists/bulk-import`
+
+### Team 3 (Orders / Tasks / Workflows / Status transitions)
+
+CRUD (starter; thin proxy to ERPNext REST `api/resource/...`)
+
+- Sales Order
+  - `GET /sales-orders`
+  - `GET /sales-orders/{name}`
+  - `POST /sales-orders`
+  - `PUT /sales-orders/{name}`
+  - `DELETE /sales-orders/{name}`
+- Work Order (ใช้แทน “Task หลัก” ภายใต้ Sales Order)
+  - `GET /work-orders?sales_order=...`
+  - `GET /work-orders/{name}`
+  - `POST /work-orders`
+  - `PUT /work-orders/{name}` (ไม่อนุญาตแก้ `status` ตรง ๆ)
+  - `DELETE /work-orders/{name}`
+- Job Card (detail ใต้ Work Order)
+  - `GET /job-cards?work_order=...`
+  - `GET /job-cards/{name}`
+  - `POST /job-cards` (ขั้นต่ำที่ต้องส่ง: `company`, `work_order`, `operation`, `workstation`, `wip_warehouse`)
+  - `PUT /job-cards/{name}` (update แบบระวัง)
+  - `DELETE /job-cards/{name}`
+
+Workflow / State machine + Views
+
+- `POST /workflow/work-orders/{name}/transition` → ตรวจ rule แล้วค่อย update status ใน ERPNext
+- `GET /views/orders/{sales_order}/kanban` → Kanban ของ Work Orders ในออเดอร์
+- `GET /views/orders/{sales_order}/timeline` → Timeline ของ Work Orders ในออเดอร์
+- `GET /views/work-orders/{work_order}/job-cards` → list Job Cards ของ Work Order
 
 ## Config
 
 อ่านจาก `.env` (ไฟล์นี้ถูก ignore):
 
 - `ERP_BASE_URL` (default: `http://localhost:8080`)
-- `ERP_BASE_URL` (default: `http://localhost:8081`)
 
 Optional (แนะนำ):
 

@@ -6,6 +6,22 @@ from urllib.parse import quote
 
 import httpx
 
+# Server Script name used to bypass Work Order status controller validation.
+# Created lazily on first transition call.
+_GW_SCRIPT_NAME = "gw_force_wo_status"
+_GW_SCRIPT_CODE = """\
+frappe.db.set_value(
+    "Work Order",
+    frappe.form_dict.get("wo_name"),
+    "status",
+    frappe.form_dict.get("status"),
+)
+frappe.response["message"] = {
+    "name": frappe.form_dict.get("wo_name"),
+    "status": frappe.form_dict.get("status"),
+}
+"""
+
 
 class ERPNextClient:
     def __init__(
@@ -96,5 +112,68 @@ class ERPNextClient:
     async def delete_doc(self, doctype: str, name: str) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             resp = await client.delete(self._resource_url(doctype, name), headers=self._auth_header)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def submit_doc(self, doctype: str, name: str) -> dict[str, Any]:
+        """Submit a document (docstatus 0 → 1) via PUT."""
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            resp = await client.put(
+                self._resource_url(doctype, name),
+                json={"docstatus": 1},
+                headers=self._auth_header,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    async def set_field_value(self, doctype: str, name: str, fieldname: str, value: Any) -> dict[str, Any]:
+        """Write a single field directly via frappe.client.set_value, bypassing submit/save validators."""
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            resp = await client.post(
+                self._url("/api/method/frappe.client.set_value"),
+                data={
+                    "doctype": doctype,
+                    "name": name,
+                    "fieldname": fieldname,
+                    "value": str(value),
+                },
+                headers=self._auth_header,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    async def _ensure_force_status_script(self) -> None:
+        """Create the Server Script in ERPNext if it doesn't exist yet (idempotent)."""
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            chk = await client.get(
+                self._resource_url("Server Script", _GW_SCRIPT_NAME),
+                headers=self._auth_header,
+            )
+        if chk.status_code == 200:
+            return  # already exists
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            crt = await client.post(
+                self._resource_url("Server Script"),
+                json={
+                    "name": _GW_SCRIPT_NAME,
+                    "script_type": "API",
+                    "api_method": _GW_SCRIPT_NAME,
+                    "allow_guest": 0,
+                    "enabled": 1,
+                    "script": _GW_SCRIPT_CODE,
+                },
+                headers=self._auth_header,
+            )
+            crt.raise_for_status()
+
+    async def force_wo_status(self, name: str, status: str) -> dict[str, Any]:
+        """Update Work Order status via Server Script API, bypassing ERPNext controller."""
+        await self._ensure_force_status_script()
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            resp = await client.post(
+                self._url(f"/api/method/{_GW_SCRIPT_NAME}"),
+                data={"wo_name": name, "status": status},
+                headers=self._auth_header,
+            )
             resp.raise_for_status()
             return resp.json()

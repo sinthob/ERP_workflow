@@ -32,6 +32,13 @@ docker run --rm -p 8003:8003 --env-file .env operations-service:dev
 - `GET /kanban/board` → columns + tasks grouped by status
 - `POST /tasks/{name}/transition` → validate transition + update status in ERPNext
 - `GET /timeline/tasks` → list tasks sorted by `modified` (simple timeline)
+- `GET /kanban/generic-board?kind=task|work_order|job_card` → generic cards grouped by status (starter)
+- `GET /timeline/cards?kind=task|work_order|job_card` → generic timeline list (starter)
+- `POST /cards/{kind}/{name}/transition` → validate transitions; `apply=true` supported only for `kind=task` (starter)
+- `GET /orders` → list Sales Orders (starter)
+- `GET /orders/{sales_order}/tasks?task_kind=work_order` → list “tasks” for an order (starter; Work Order only)
+- `GET /orders/{sales_order}/kanban?task_kind=work_order` → kanban board for an order (starter; Work Order only)
+- `GET /work-orders/{work_order}/job-cards` → job card details under a work order (starter)
 - `POST /webhooks/erpnext` → receiver for ERPNext webhooks (optional token)
 
 ## Config

@@ -1,46 +1,36 @@
-# ERP_workflow (local workspace)
+﻿# ERP_workflow
 
-Repo นี้ใช้ **Frappe/ERPNext** ผ่าน Docker Compose (อยู่ในโฟลเดอร์ `frappe_docker/`) และมี **Gateway API (FastAPI)** ที่ใช้งานจริงอยู่ใน `services/gateway-api/`.
+ระบบ ERP Desktop ที่ประกอบด้วย **Frappe/ERPNext** เป็น backend, **Gateway API (FastAPI)** เป็น middleware และ **Avalonia** เป็น Desktop UI
 
-## Services (ใช้จริง)
+---
 
-- `services/gateway-api/` : Gateway API ที่ Avalonia/Client เรียก
-- `services/operations-service/` : Service สำหรับ workflow/kanban (เชื่อม ERPNext ผ่าน REST)
+## Quick Start (วิธีแนะนำ Full Docker)
 
-## Architecture (มือใหม่)
+Prerequisites: **Docker Desktop** + `docker compose`
 
-ภาพรวมแบบง่าย:
-
-- **ERPNext/Frappe** (ระบบ ERP หลัก) รันด้วย Docker ใน `frappe_docker/`
-- **Gateway API (FastAPI)** อยู่ที่ `services/gateway-api/` เป็น “ประตูหน้า” ให้ Client เรียก
-- **Operations service** อยู่ที่ `services/operations-service/` ทำ logic เรื่อง workflow/kanban และคุยกับ ERPNext ผ่าน REST (ตอนนี้โฟกัส DocType `Task`)
-- **Avalonia** อยู่ที่ `avalonia/` เป็น Desktop UI
-
-Flow โดยทั่วไป:
-
-`Avalonia (UI)` → `Gateway API` → (เรียก `operations-service` และ/หรือ `ERPNext`) → `ERPNext/Frappe`
-
-## Quick start: รัน ERPNext (Docker)
-
-Prerequisites:
-
-- Docker Desktop + `docker compose`
-
-คำสั่ง:
+รันทุกอย่างพร้อมกันด้วยคำสั่งเดียว:
 
 ```powershell
 cd .\frappe_docker
-docker compose -f pwd.yml up -d
+docker compose -f pwd.yml up -d --build
+```
 
-# รอสร้าง site (2-5 นาที)
+> `--build` จำเป็นครั้งแรก หรือทุกครั้งที่แก้ไขโค้ด gateway-api
+
+รอสร้าง site (ครั้งแรกเท่านั้น ~3-5 นาที):
+
+```powershell
 docker compose -f pwd.yml logs -f create-site
+# รอจนเห็น "Site frontend created" แล้ว Ctrl+C
 ```
 
 เข้าใช้งาน:
 
-- http://localhost:8081
-- Username: `Administrator`
-- Password: `admin`
+| Service            | URL                                   |
+| ------------------ | ------------------------------------- |
+| ERPNext Web UI     | http://localhost:8081 (admin / admin) |
+| Gateway API        | http://localhost:8001                 |
+| API Docs (Swagger) | http://localhost:8001/docs            |
 
 ปิดระบบ:
 
@@ -48,96 +38,124 @@ docker compose -f pwd.yml logs -f create-site
 cd .\frappe_docker
 docker compose -f pwd.yml down
 
-# ถ้าจะล้างข้อมูลเริ่มใหม่ทั้งหมด
+# ล้างข้อมูลทั้งหมด เริ่มใหม่
 # docker compose -f pwd.yml down -v
 ```
 
-## FastAPI
+---
 
-FastAPI เป็นตัวกลางให้ Avalonia เรียกใช้งาน และสามารถไปคุยกับ ERPNext ต่อได้
+## รัน Avalonia Desktop UI
 
-รัน:
-
-```powershell
-cd .\services\gateway-api
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-copy .env.example .env
-uvicorn main:app --reload --port 8000
-```
-
-ทดสอบ:
-
-- http://localhost:8000/health
-- http://localhost:8000/erp/ping
-
-## Operations service (workflow/kanban)
-
-รัน:
+Prerequisites: **.NET SDK 8**
 
 ```powershell
-cd .\services\operations-service
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-copy .env.example .env
-uvicorn main:app --reload --port 8003
+dotnet --version  # ตรวจสอบ
 ```
 
-ทดสอบ:
-
-- http://localhost:8003/health
-- http://localhost:8003/kanban/board
-
-## Avalonia (Desktop)
-
-แนวทางที่ง่ายสุดคือทำ Avalonia เป็น **Desktop client** แล้วให้คุยกับ backend ผ่าน HTTP:
-
-- Avalonia (UI) → เรียก FastAPI (integration/API layer)
-- FastAPI → คุยกับ ERPNext/Frappe (REST API) หรือทำ business logic เพิ่ม
-
-### Prerequisites
-
-- ติดตั้ง **.NET SDK 8** (Windows)
-
-ตรวจสอบ:
+รัน (ต้องมี Docker stack รันอยู่ก่อน):
 
 ```powershell
-dotnet --version
+cd .\avalonia_test
+dotnet run
 ```
 
-### Workflow ตอน dev (รันคู่กัน)
+---
 
-1. รัน ERPNext (Docker):
+---
 
-```powershell
-cd .\frappe_docker
-docker compose -f pwd.yml up -d
+---
+
+## โฟลเดอร์ที่ใช้งานจริง
+
+| โฟลเดอร์                       | สถานะ     | หน้าที่                                      |
+| ------------------------------ | --------- | -------------------------------------------- |
+| `frappe_docker/`               | ใช้จริง   | Docker Compose stack ของ ERPNext ทั้งหมด     |
+| `services/gateway-api/`        | ใช้จริง   | FastAPI middleware (port 8001)               |
+| `avalonia_test/`               | ใช้จริง   | Avalonia Desktop UI (ตัวหลักของทีม)          |
+| `avalonia/Client/`             | reference | Avalonia เวอร์ชันเก่า (port 8003) ไม่ใช้แล้ว |
+| `services/operations-service/` | reference | Starter code เท่านั้น ไม่ได้ deploy          |
+| `examples/`                    | อ้างอิง   | สคริปต์ทดลอง/ตัวอย่าง                        |
+
+---
+
+## Architecture
+
 ```
 
-2. รัน FastAPI (ตัวอย่างแนวคิด):
+  Avalonia Desktop     avalonia_test/
+  (.NET 8, Windows)
 
-```powershell
-cd .\services\gateway-api
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-copy .env.example .env
-uvicorn main:app --reload --port 8000
+          HTTP  localhost:8001
+
+
+    Gateway API        services/gateway-api/
+  (FastAPI, Python)    รันเป็น Docker container ชื่อ "operations-service"
+
+          HTTP  frontend:8080 (ภายใน Docker network)
+
+
+  ERPNext / Frappe     frappe_docker/pwd.yml
+  (Docker stack)       เข้าถึงจากเครื่อง host ที่ localhost:8081
+
 ```
 
-3. รัน Avalonia:
+**Docker stack ทั้งหมดรันด้วยคำสั่งเดียว** ERPNext และ Gateway API อยู่ใน network เดียวกัน (`frappe_network`) สามารถคุยกันด้วย hostname ได้เลย
 
-```powershell
-dotnet run --project .\avalonia\Client\Client.csproj
-```
+---
 
-## Examples
+## ไฟล์สำคัญ
 
-โค้ดตัวอย่าง/สคริปต์ทดลองถูกย้ายไปไว้ที่ `examples/` เพื่อไม่ให้ปนกับ service ที่ใช้งานจริง
+### Backend `services/gateway-api/`
 
-หมายเหตุ:
+| ไฟล์                    | หน้าที่                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `main.py`               | FastAPI application นิยาม routes ทั้งหมด                     |
+| `team3_models.py`       | Pydantic models (SalesOrder, WorkOrder, JobCard)             |
+| `erpnext_client.py`     | HTTP client สำหรับเชื่อมต่อ ERPNext REST API                 |
+| `workflow_engine.py`    | Logic สำหรับ Work Order status transitions                   |
+| `normalization.py`      | Data normalization helpers                                   |
+| `schemas.py`            | Request/Response schemas เพิ่มเติม                           |
+| `Dockerfile`            | สำหรับ build เป็น Docker image (python:3.11-slim, port 8001) |
+| `.env` / `.env.example` | Config: `ERP_BASE_URL`, `ERP_API_KEY`, `ERP_API_SECRET`      |
 
-- ERPNext demo เปิดที่ `http://localhost:8081`
-- แนะนำให้ Avalonia เรียก FastAPI (เช่น `http://localhost:8000`) แล้วให้ FastAPI เป็นตัวกลางไป ERPNext เพื่อลดความซับซ้อนเรื่อง auth/CORS
+### Frontend `avalonia_test/`
+
+| ไฟล์                  | หน้าที่                                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| `MainWindow.cs`       | หน้าต่างหลัก UI ทุกหน้า (SO list, WO list, Kanban, create forms) |
+| `ApiClient.cs`        | HTTP client เรียก Gateway API ที่ `localhost:8001`               |
+| `App.cs`              | Avalonia Application entry point                                 |
+| `Program.cs`          | .NET Program entry point                                         |
+| `AvaloniaTest.csproj` | Project file (.NET 8)                                            |
+
+### Infrastructure `frappe_docker/`
+
+| ไฟล์           | หน้าที่                                                           |
+| -------------- | ----------------------------------------------------------------- |
+| `pwd.yml`      | **Main compose file** full ERPNext stack + operations-service     |
+| `compose.yaml` | Template compose file (ไม่มี DB/Redis ใช้เป็น reference เท่านั้น) |
+| `overrides/`   | Compose override files สำหรับ production scenarios                |
+
+---
+
+## API Endpoints (Gateway API port 8001)
+
+| Method | Path                                | หน้าที่                        |
+| ------ | ----------------------------------- | ------------------------------ |
+| GET    | `/health`                           | Health check                   |
+| GET    | `/erp/ping`                         | ทดสอบ connection ไปยัง ERPNext |
+| GET    | `/sales-orders`                     | ดึงรายการ Sales Orders         |
+| POST   | `/sales-orders`                     | สร้าง Sales Order ใหม่         |
+| GET    | `/sales-orders/{name}`              | ดึง Sales Order เดียว          |
+| PUT    | `/sales-orders/{name}`              | อัปเดต Sales Order             |
+| DELETE | `/sales-orders/{name}`              | ลบ Sales Order                 |
+| GET    | `/work-orders`                      | ดึงรายการ Work Orders          |
+| POST   | `/work-orders`                      | สร้าง Work Order ใหม่          |
+| POST   | `/work-orders/{name}/transition`    | เปลี่ยน status ของ Work Order  |
+| GET    | `/job-cards`                        | ดึงรายการ Job Cards            |
+| POST   | `/job-cards`                        | สร้าง Job Card ใหม่            |
+| GET    | `/views/orders/{so}/kanban`         | Kanban board ของ Sales Order   |
+| GET    | `/views/orders/{so}/timeline`       | Timeline ของ Sales Order       |
+| GET    | `/views/work-orders/{wo}/job-cards` | Job Cards ใน Work Order        |
+
+Swagger UI: http://localhost:8001/docs

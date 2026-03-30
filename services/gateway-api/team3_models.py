@@ -57,6 +57,8 @@ class WorkOrderCreate(BaseModel):
 
     sales_order: str | None = None
     project: str | None = None
+    planned_start_date: date | None = None
+    expected_delivery_date: date | None = None
 
     # Optional, ERPNext can default based on DocType settings
     naming_series: str | None = None
@@ -95,6 +97,8 @@ class JobCardCreate(BaseModel):
     employee: str | None = None
     for_quantity: float | None = Field(default=None, gt=0)
     naming_series: str | None = None
+    title: str | None = None        # stored in gateway service (jc_meta.json)
+    description: str | None = None  # stored in gateway service (jc_meta.json)
 
 
 class JobCardUpdate(BaseModel):
@@ -112,6 +116,8 @@ class JobCardSummary(BaseModel):
     status: str | None = None
     for_quantity: float | None = None
     modified: datetime | None = None
+    title: str | None = None        # from gateway service
+    description: str | None = None  # from gateway service
 
 
 class TransitionRequest(BaseModel):

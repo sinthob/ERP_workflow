@@ -42,6 +42,8 @@ public sealed class JobCardRow
     [JsonPropertyName("workstation")] public string? Workstation { get; set; }
     [JsonPropertyName("status")] public string? Status { get; set; }
     [JsonPropertyName("for_quantity")] public double? ForQuantity { get; set; }
+    [JsonPropertyName("title")] public string? Title { get; set; }
+    [JsonPropertyName("description")] public string? Description { get; set; }
 }
 
 public sealed class MainWindow : Window
@@ -52,6 +54,8 @@ public sealed class MainWindow : Window
     // -- Drill-down state --
     private string? _selectedSO;
     private string? _selectedWO;
+    private string? _selectedSOName;   // friendly display name for breadcrumb
+    private string? _selectedWOName;
 
     // -- Navigation generation: incremented on every navigation so stale async
     //    continuations can detect they've been superseded and abort.
@@ -86,9 +90,11 @@ public sealed class MainWindow : Window
 
         _breadcrumb = new TextBlock
         {
-            FontSize = 14,
-            Margin = new Thickness(8, 4),
-            Foreground = Brushes.Gray,
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.White,
+            Margin = new Thickness(16, 0),
+            VerticalAlignment = VerticalAlignment.Center,
         };
         _contentArea = new StackPanel { Spacing = 4 };
 
@@ -135,11 +141,20 @@ public sealed class MainWindow : Window
 
     private TabItem BuildDrillDownTab()
     {
+        var crumbBorder = new Border
+        {
+            Child = _breadcrumb,
+            Background = new SolidColorBrush(Color.FromRgb(18, 32, 68)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(65, 105, 225)),
+            BorderThickness = new Thickness(0, 0, 0, 3),
+            Padding = new Thickness(0, 12),
+        };
+
         var drillPanel = new DockPanel
         {
             Children =
             {
-                SetDock(_breadcrumb, global::Avalonia.Controls.Dock.Top),
+                SetDock(crumbBorder, global::Avalonia.Controls.Dock.Top),
                 new ScrollViewer { Content = _contentArea },
             },
         };
@@ -154,7 +169,9 @@ public sealed class MainWindow : Window
         var gen = ++_navGen;
         _selectedSO = null;
         _selectedWO = null;
-        _breadcrumb.Text = "📋 Sales Orders";
+        _selectedSOName = null;
+        _selectedWOName = null;
+        _breadcrumb.Text = "📋  Sales Orders";
         _contentArea.Children.Clear();
 
         // Create form
@@ -180,10 +197,10 @@ public sealed class MainWindow : Window
 
             // Column header
             var header = new Grid { Margin = new Thickness(8, 4) };
-            header.ColumnDefinitions.Add(new ColumnDefinition(110, GridUnitType.Pixel));
-            header.ColumnDefinitions.Add(new ColumnDefinition(190, GridUnitType.Pixel));
-            header.ColumnDefinitions.Add(new ColumnDefinition(200, GridUnitType.Pixel));
-            header.ColumnDefinitions.Add(new ColumnDefinition(160, GridUnitType.Pixel));
+            header.ColumnDefinitions.Add(new ColumnDefinition(155, GridUnitType.Pixel));
+            header.ColumnDefinitions.Add(new ColumnDefinition(220, GridUnitType.Pixel));
+            header.ColumnDefinitions.Add(new ColumnDefinition(230, GridUnitType.Pixel));
+            header.ColumnDefinitions.Add(new ColumnDefinition(180, GridUnitType.Pixel));
             header.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
             void AddHeader(string t, int col)
             {
@@ -240,15 +257,17 @@ public sealed class MainWindow : Window
 
         var soTitleBox = new TextBox { Watermark = "SO Name (opt.)", Width = 130 };
         var qtyBox = new TextBox { Watermark = "Qty", Width = 70, Text = "1" };
-        var startPicker = new DatePicker
+        var startPicker = new CalendarDatePicker
         {
-            SelectedDate = DateTimeOffset.Now,
-            Width = 130,
+            SelectedDate = DateTime.Now,
+            Width = 140,
+            IsTodayHighlighted = true,
         };
-        var deliveryPicker = new DatePicker
+        var deliveryPicker = new CalendarDatePicker
         {
-            SelectedDate = DateTimeOffset.Now.AddDays(7),
-            Width = 130,
+            SelectedDate = DateTime.Now.AddDays(7),
+            Width = 140,
+            IsTodayHighlighted = true,
         };
 
         return new StackPanel
@@ -266,8 +285,8 @@ public sealed class MainWindow : Window
             deliveryPicker,
             MakeBtn("Create", async (_, _) =>
             {
-                var startDate = (startPicker.SelectedDate ?? DateTimeOffset.Now).ToString("yyyy-MM-dd");
-                var deliveryDate = (deliveryPicker.SelectedDate ?? DateTimeOffset.Now.AddDays(7)).ToString("yyyy-MM-dd");
+                var startDate = (startPicker.SelectedDate ?? DateTime.Now).ToString("yyyy-MM-dd");
+                var deliveryDate = (deliveryPicker.SelectedDate ?? DateTime.Now.AddDays(7)).ToString("yyyy-MM-dd");
                 var body = new Dictionary<string, object?>
                 {
                     ["customer"] = customerBox.Text,
@@ -421,12 +440,13 @@ public sealed class MainWindow : Window
 
     // ---------- Level 2: Work Orders for a Sales Order ----------
 
-    private async void ShowWorkOrders(string salesOrder)
+    private async void ShowWorkOrders(string salesOrder, string? salesOrderName = null)
     {
         var gen = ++_navGen;
         _selectedSO = salesOrder;
         _selectedWO = null;
-        _breadcrumb.Text = $"📋 Sales Orders  ›  {salesOrder}  ›  Work Orders";
+        _selectedSOName = salesOrderName ?? salesOrder;
+        _breadcrumb.Text = $"📋  Sales Orders  ›  {_selectedSOName}  ›  Work Orders";
         _contentArea.Children.Clear();
 
         // Back + create
@@ -535,34 +555,69 @@ public sealed class MainWindow : Window
                 prodItemBox.Text = itemCode;
         };
 
-        return new StackPanel
+        var startDatePicker = new CalendarDatePicker
+        {
+            SelectedDate = DateTime.Now,
+            Width = 140,
+            IsTodayHighlighted = true,
+        };
+        var endDatePicker = new CalendarDatePicker
+        {
+            SelectedDate = DateTime.Now.AddDays(7),
+            Width = 140,
+            IsTodayHighlighted = true,
+        };
+
+        var row1 = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 6,
-            Margin = new Thickness(8, 4),
             Children =
-        {
-            new TextBlock { Text = "+ New WO:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold },
-            woTitleBox, companyBox, prodItemBox, woQtyBox, warehouseBox, wipWarehouseBox, bomBox,
-            MakeBtn("Create", async (_, _) =>
             {
-                var body = new Dictionary<string, object?>
+                new TextBlock { Text = "+ New WO:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold },
+                woTitleBox, companyBox, prodItemBox, woQtyBox, warehouseBox, wipWarehouseBox, bomBox,
+            }
+        };
+
+        var row2 = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            Children =
+            {
+                new TextBlock { Text = "          ", VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = "Start:", VerticalAlignment = VerticalAlignment.Center },
+                startDatePicker,
+                new TextBlock { Text = "End:", VerticalAlignment = VerticalAlignment.Center },
+                endDatePicker,
+                MakeBtn("Create", async (_, _) =>
                 {
-                    ["company"] = companyBox.Text,
-                    ["production_item"] = ExtractItemCode(prodItemBox.Text),
-                    ["qty"] = double.TryParse(woQtyBox.Text, out var q) ? q : 1,
-                    ["bom_no"] = ExtractBomNo(bomBox.Text),
-                    ["fg_warehouse"] = ExtractItemCode(warehouseBox.Text),
-                    ["wip_warehouse"] = ExtractItemCode(wipWarehouseBox.Text),
-                    ["sales_order"] = salesOrder,
-                };
-                if (!string.IsNullOrWhiteSpace(woTitleBox.Text))
-                    body["title"] = woTitleBox.Text.Trim();
-                Log(await _api.PostAsync("/work-orders", body));
-                ShowWorkOrders(salesOrder);
-            }),
-            MakeBtn("⟳", (_, _) => ShowWorkOrders(salesOrder)),
-        }
+                    var body = new Dictionary<string, object?>
+                    {
+                        ["company"] = companyBox.Text,
+                        ["production_item"] = ExtractItemCode(prodItemBox.Text),
+                        ["qty"] = double.TryParse(woQtyBox.Text, out var q) ? q : 1,
+                        ["bom_no"] = ExtractBomNo(bomBox.Text),
+                        ["fg_warehouse"] = ExtractItemCode(warehouseBox.Text),
+                        ["wip_warehouse"] = ExtractItemCode(wipWarehouseBox.Text),
+                        ["sales_order"] = salesOrder,
+                        ["planned_start_date"] = (startDatePicker.SelectedDate ?? DateTime.Now).ToString("yyyy-MM-dd"),
+                        ["expected_delivery_date"] = (endDatePicker.SelectedDate ?? DateTime.Now.AddDays(7)).ToString("yyyy-MM-dd"),
+                    };
+                    if (!string.IsNullOrWhiteSpace(woTitleBox.Text))
+                        body["title"] = woTitleBox.Text.Trim();
+                    Log(await _api.PostAsync("/work-orders", body));
+                    ShowWorkOrders(salesOrder, _selectedSOName);
+                }),
+                MakeBtn("⟳", (_, _) => ShowWorkOrders(salesOrder, _selectedSOName)),
+            }
+        };
+
+        return new StackPanel
+        {
+            Spacing = 4,
+            Margin = new Thickness(8, 4),
+            Children = { row1, row2 },
         };
     }
 
@@ -577,12 +632,13 @@ public sealed class MainWindow : Window
 
     // ---------- Level 3: Job Cards for a Work Order ----------
 
-    private async void ShowJobCards(string salesOrder, string workOrder)
+    private async void ShowJobCards(string salesOrder, string workOrder, string? workOrderName = null)
     {
         var gen = ++_navGen;
         _selectedSO = salesOrder;
         _selectedWO = workOrder;
-        _breadcrumb.Text = $"📋 Sales Orders  ›  {salesOrder}  ›  {workOrder}  ›  Job Cards";
+        _selectedWOName = workOrderName ?? workOrder;
+        _breadcrumb.Text = $"📋  Sales Orders  ›  {_selectedSOName ?? salesOrder}  ›  {_selectedWOName}  ›  Job Cards";
         _contentArea.Children.Clear();
 
         // Back + workflow + delete
@@ -608,18 +664,8 @@ public sealed class MainWindow : Window
                 return;
             }
 
-            _contentArea.Children.Add(MakeGridHeader("NAME", "OPERATION", "WORKSTATION", "STATUS"));
-
             foreach (var jc in rows)
-            {
-                var row = MakeSelectableRow(
-                    jc.Name, jc.Operation ?? "", jc.Workstation ?? "", jc.Status ?? "",
-                    async () =>
-                    {
-                        Log(await _api.GetAsync($"/job-cards/{jc.Name}"));
-                    });
-                _contentArea.Children.Add(row);
-            }
+                _contentArea.Children.Add(MakeJCCard(jc));
 
             _contentArea.Children.Add(new TextBlock
             {
@@ -653,7 +699,7 @@ public sealed class MainWindow : Window
             Margin = new Thickness(8, 4),
             Children =
         {
-            MakeBtn("← Back to Work Orders", (_, _) => ShowWorkOrders(salesOrder)),
+            MakeBtn("← Back to Work Orders", (_, _) => ShowWorkOrders(salesOrder, _selectedSOName)),
             new Separator(),
             toStatus,
             MakeBtn("Transition WO", async (_, _) =>
@@ -661,13 +707,13 @@ public sealed class MainWindow : Window
                 var sel = toStatus.SelectedItem?.ToString();
                 if (string.IsNullOrWhiteSpace(sel)) { Log("ERROR: select a target status"); return; }
                 Log(await _api.PostAsync($"/workflow/work-orders/{workOrder}/transition", new { to_status = sel }));
-                ShowWorkOrders(salesOrder); // go back to kanban so updated card is visible
+                ShowWorkOrders(salesOrder, _selectedSOName); // go back to kanban so updated card is visible
             }),
             new Separator(),
             MakeBtn("Delete this WO", async (_, _) =>
             {
                 Log(await _api.DeleteAsync($"/work-orders/{workOrder}"));
-                ShowWorkOrders(salesOrder);
+                ShowWorkOrders(salesOrder, _selectedSOName);
             }),
         }
         };
@@ -712,33 +758,63 @@ public sealed class MainWindow : Window
         _ = LoadWarehouseSuggestionsAsync(jcWip);
 
         var jcQty = new TextBox { Watermark = "Qty", Width = 60, Text = "1" };
+        var jcTitleBox = new TextBox { Watermark = "JC Name (opt.)", Width = 160 };
+        var jcDescBox = new TextBox
+        {
+            Watermark = "Job Description (opt.)",
+            Width = 500,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            MaxHeight = 80,
+        };
 
-        return new StackPanel
+        var row1 = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 6,
-            Margin = new Thickness(8, 4),
             Children =
-        {
-            new TextBlock { Text = "+ New JC:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold },
-            jcCompany, jcOp, jcWs, jcWip, jcQty,
-            MakeBtn("Create", async (_, _) =>
             {
-                var body = new Dictionary<string, object?>
+                new TextBlock { Text = "+ New JC:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold },
+                jcTitleBox, jcCompany, jcOp, jcWs, jcWip, jcQty,
+            }
+        };
+
+        var row2 = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            Children =
+            {
+                new TextBlock { Text = "          ", VerticalAlignment = VerticalAlignment.Top },
+                jcDescBox,
+                MakeBtn("Create", async (_, _) =>
                 {
-                    ["company"] = jcCompany.Text,
-                    ["work_order"] = workOrder,
-                    ["operation"] = jcOp.Text,
-                    ["workstation"] = jcWs.Text,
-                    ["wip_warehouse"] = jcWip.Text,
-                };
-                if (double.TryParse(jcQty.Text, out var fq) && fq > 0)
-                    body["for_quantity"] = fq;
-                Log(await _api.PostAsync("/job-cards", body));
-                ShowJobCards(salesOrder, workOrder);
-            }),
-            MakeBtn("⟳", (_, _) => ShowJobCards(salesOrder, workOrder)),
-        }
+                    var body = new Dictionary<string, object?>
+                    {
+                        ["company"] = jcCompany.Text,
+                        ["work_order"] = workOrder,
+                        ["operation"] = jcOp.Text,
+                        ["workstation"] = jcWs.Text,
+                        ["wip_warehouse"] = jcWip.Text,
+                    };
+                    if (double.TryParse(jcQty.Text, out var fq) && fq > 0)
+                        body["for_quantity"] = fq;
+                    if (!string.IsNullOrWhiteSpace(jcTitleBox.Text))
+                        body["title"] = jcTitleBox.Text.Trim();
+                    if (!string.IsNullOrWhiteSpace(jcDescBox.Text))
+                        body["description"] = jcDescBox.Text.Trim();
+                    Log(await _api.PostAsync("/job-cards", body));
+                    ShowJobCards(salesOrder, workOrder, _selectedWOName);
+                }),
+                MakeBtn("\u27f3", (_, _) => ShowJobCards(salesOrder, workOrder, _selectedWOName)),
+            }
+        };
+
+        return new StackPanel
+        {
+            Spacing = 4,
+            Margin = new Thickness(8, 4),
+            Children = { row1, row2 },
         };
     }
 
@@ -1169,7 +1245,128 @@ public sealed class MainWindow : Window
             ClipToBounds = true,
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
         };
-        card.PointerPressed += (_, _) => ShowJobCards(salesOrder, wo.Name);
+        card.PointerPressed += (_, _) => ShowJobCards(salesOrder, wo.Name, displayTitle);
+        card.PointerEntered += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(120, accentColor.R, accentColor.G, accentColor.B));
+        card.PointerExited += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 210));
+        return card;
+    }
+
+    // ---- Job Card card ----
+
+    private Border MakeJCCard(JobCardRow jc)
+    {
+        var displayTitle = !string.IsNullOrWhiteSpace(jc.Title)
+            ? jc.Title
+            : jc.Operation ?? jc.Name;
+
+        var accentColor = (jc.Status ?? "").ToUpperInvariant() switch
+        {
+            "COMPLETED" => Color.FromRgb(40, 167, 69),
+            "IN PROCESS" => Color.FromRgb(0, 123, 255),
+            "CANCELLED" => Color.FromRgb(220, 53, 69),
+            _ => Color.FromRgb(108, 117, 125),
+        };
+
+        var content = new StackPanel { Spacing = 4, Margin = new Thickness(12, 10, 12, 10) };
+
+        // Top row: status badge + modified date
+        var topRow = new Grid();
+        topRow.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+        topRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+        var statusBadge = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(35, accentColor.R, accentColor.G, accentColor.B)),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(7, 2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Child = new TextBlock
+            {
+                Text = (jc.Status ?? "UNKNOWN").ToUpperInvariant(),
+                FontSize = 10,
+                FontWeight = FontWeight.Bold,
+                Foreground = new SolidColorBrush(accentColor),
+            },
+        };
+        Grid.SetColumn(statusBadge, 0);
+        topRow.Children.Add(statusBadge);
+        content.Children.Add(topRow);
+
+        // Title (bold)
+        content.Children.Add(new TextBlock
+        {
+            Text = displayTitle,
+            FontSize = 14,
+            FontWeight = FontWeight.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(25, 25, 55)),
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        // System ID as sub-text
+        content.Children.Add(new TextBlock
+        {
+            Text = jc.Name,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 160)),
+        });
+
+        // Description (if any)
+        if (!string.IsNullOrWhiteSpace(jc.Description))
+            content.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(18, 100, 100, 180)),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 4),
+                Margin = new Thickness(0, 2, 0, 0),
+                Child = new TextBlock
+                {
+                    Text = jc.Description,
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush(Color.FromRgb(50, 50, 100)),
+                    TextWrapping = TextWrapping.Wrap,
+                },
+            });
+
+        content.Children.Add(new Separator { Margin = new Thickness(0, 4, 0, 2) });
+
+        // Operation + Workstation info row
+        var infoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16 };
+        void AddInfo(string label, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            var sp = new StackPanel();
+            sp.Children.Add(new TextBlock { Text = label, FontSize = 9, Foreground = Brushes.Gray, FontWeight = FontWeight.Bold });
+            sp.Children.Add(new TextBlock { Text = value, FontSize = 12 });
+            infoRow.Children.Add(sp);
+        }
+        AddInfo("OPERATION", jc.Operation);
+        AddInfo("WORKSTATION", jc.Workstation);
+        if (jc.ForQuantity.HasValue)
+            AddInfo("QTY", jc.ForQuantity.Value.ToString("F0"));
+        content.Children.Add(infoRow);
+
+        // Card with left accent strip
+        var cardGrid = new Grid();
+        cardGrid.ColumnDefinitions.Add(new ColumnDefinition(4, GridUnitType.Pixel));
+        cardGrid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+        var strip = new Border { Background = new SolidColorBrush(accentColor), CornerRadius = new CornerRadius(8, 0, 0, 8) };
+        Grid.SetColumn(strip, 0);
+        Grid.SetColumn(content, 1);
+        cardGrid.Children.Add(strip);
+        cardGrid.Children.Add(content);
+
+        var card = new Border
+        {
+            Child = cardGrid,
+            Background = Brushes.White,
+            CornerRadius = new CornerRadius(8),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 210)),
+            BorderThickness = new Thickness(1),
+            ClipToBounds = true,
+            Margin = new Thickness(8, 4),
+            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+        };
+        card.PointerPressed += async (_, _) => Log(await _api.GetAsync($"/job-cards/{jc.Name}"));
         card.PointerEntered += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(120, accentColor.R, accentColor.G, accentColor.B));
         card.PointerExited += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 210));
         return card;
@@ -1180,10 +1377,10 @@ public sealed class MainWindow : Window
     private Border MakeSOCard(SalesOrderRow so)
     {
         var grid = new Grid { Margin = new Thickness(8, 2) };
-        grid.ColumnDefinitions.Add(new ColumnDefinition(110, GridUnitType.Pixel));  // ID
-        grid.ColumnDefinitions.Add(new ColumnDefinition(190, GridUnitType.Pixel));  // Name
-        grid.ColumnDefinitions.Add(new ColumnDefinition(200, GridUnitType.Pixel));  // Timeline
-        grid.ColumnDefinitions.Add(new ColumnDefinition(160, GridUnitType.Pixel));  // Customer
+        grid.ColumnDefinitions.Add(new ColumnDefinition(155, GridUnitType.Pixel));  // ID
+        grid.ColumnDefinitions.Add(new ColumnDefinition(220, GridUnitType.Pixel));  // Name
+        grid.ColumnDefinitions.Add(new ColumnDefinition(230, GridUnitType.Pixel));  // Timeline
+        grid.ColumnDefinitions.Add(new ColumnDefinition(180, GridUnitType.Pixel));  // Customer
         grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));     // Status
 
         // Col 0 — ID (blue link style)
@@ -1248,7 +1445,7 @@ public sealed class MainWindow : Window
             BorderThickness = new Thickness(0, 0, 0, 1),
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
         };
-        border.PointerPressed += (_, _) => ShowWorkOrders(so.Name);
+        border.PointerPressed += (_, _) => ShowWorkOrders(so.Name, displayTitle);
         border.PointerEntered += (s, _) => ((Border)s!).Background = new SolidColorBrush(Color.FromArgb(20, 100, 120, 255));
         border.PointerExited += (s, _) => ((Border)s!).Background = Brushes.Transparent;
         return border;

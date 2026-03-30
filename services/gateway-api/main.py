@@ -173,6 +173,31 @@ def _save_wo_title(wo_name: str, title: str) -> None:
     _TITLE_STORE.write_text(json.dumps(titles, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+# ---- Gateway-side metadata store (custom JC titles + descriptions) ----
+_JC_META_STORE = Path(__file__).parent / "jc_meta.json"
+
+
+def _load_jc_meta() -> dict[str, dict[str, str]]:
+    if _JC_META_STORE.exists():
+        try:
+            return json.loads(_JC_META_STORE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_jc_meta(jc_name: str, title: str | None, description: str | None) -> None:
+    meta = _load_jc_meta()
+    entry: dict[str, str] = {}
+    if title:
+        entry["title"] = title
+    if description:
+        entry["description"] = description
+    if entry:
+        meta[jc_name] = entry
+        _JC_META_STORE.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def parse_erpnext_datetime(value: Any) -> datetime | None:
     if not value:
         return None
@@ -234,6 +259,8 @@ def _to_job_card_summary(raw: dict[str, Any]) -> JobCardSummary | None:
     except (TypeError, ValueError):
         for_qty_f = None
 
+    jc_meta = _load_jc_meta()
+    entry = jc_meta.get(str(name), {})
     return JobCardSummary(
         name=str(name),
         work_order=raw.get("work_order"),
@@ -242,6 +269,8 @@ def _to_job_card_summary(raw: dict[str, Any]) -> JobCardSummary | None:
         status=raw.get("status"),
         for_quantity=for_qty_f,
         modified=parse_erpnext_datetime(raw.get("modified")),
+        title=entry.get("title"),
+        description=entry.get("description"),
     )
 
 
@@ -383,6 +412,9 @@ async def create_work_order(body: WorkOrderCreate, erp: ERPNextClient = Depends(
     custom_title = body.title
     payload = _drop_none(body.model_dump())
     payload.pop("title", None)  # title is stored in gateway service, not sent to ERPNext
+    for date_field in ("planned_start_date", "expected_delivery_date"):
+        if date_field in payload and payload[date_field] is not None:
+            payload[date_field] = str(payload[date_field])
     try:
         created = await erp.create_doc("Work Order", payload)
         # Submit WO immediately so it enters "Not Started" state and can be transitioned
@@ -468,11 +500,19 @@ async def get_job_card(name: str, erp: ERPNextClient = Depends(get_erp)) -> dict
 
 @app.post("/job-cards", responses={400: {"model": ErrorResponse}})
 async def create_job_card(body: JobCardCreate, erp: ERPNextClient = Depends(get_erp)) -> dict[str, Any]:
+    custom_title = body.title
+    custom_description = body.description
     payload = _drop_none(body.model_dump())
+    payload.pop("title", None)       # not an ERPNext field; stored in gateway service
+    payload.pop("description", None)  # not an ERPNext field; stored in gateway service
     if "posting_date" in payload and payload["posting_date"] is not None:
         payload["posting_date"] = str(payload["posting_date"])
     try:
-        return await erp.create_doc("Job Card", payload)
+        created = await erp.create_doc("Job Card", payload)
+        jc_name = (created.get("data") or {}).get("name") or created.get("name")
+        if jc_name and (custom_title or custom_description):
+            _save_jc_meta(jc_name, custom_title, custom_description)
+        return created
     except httpx.HTTPStatusError as ex:
         _raise_upstream_error(ex)
 

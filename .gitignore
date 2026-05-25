@@ -66,3 +66,6 @@ artifacts/
 # --- Frappe / Bench local data (only if bind-mounted in future) ---
 sites/
 logs/
+
+# --- Reference only (not deployed) ---
+only_for_reference/

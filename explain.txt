@@ -1,0 +1,85 @@
+Traffic paths (ERPNext stack + Gateway API) — quick interview notes
+
+Context
+- Host browser/Avalonia calls services via published ports on your machine.
+- Inside Docker Compose, containers talk to each other via the shared network (frappe_network) using service names as DNS.
+
+1) Browser → frontend → websocket (real-time)
+- Browser connects to ERPNext UI at http://localhost:8081
+- The request hits the "frontend" container (Nginx) listening on :8080 inside Docker, published as 8081 on host.
+- For real-time features, the browser uses Socket.IO under the path /socket.io.
+- Nginx routes /socket.io to the "websocket" container (Socket.IO server) at websocket:9000.
+
+Why this exists
+- WebSocket/Socket.IO keeps a long-lived connection for server-push events (notifications, live updates), instead of polling.
+
+2) Browser → frontend → backend (normal web/API requests for ERPNext)
+- Browser sends normal HTTP requests (page loads, API calls used by the ERPNext web UI) to http://localhost:8081
+- The "frontend" container (Nginx) reverse-proxies most requests to the "backend" container at backend:8000.
+
+Why this exists
+- Nginx is the single entry point: it serves static assets and forwards dynamic requests to the app server.
+
+3) Avalonia → operations-service (gateway-api) → frontend (ERPNext)
+- Avalonia desktop app runs on the host and calls Gateway API at http://localhost:8001
+- That hits the "operations-service" container (your FastAPI app) published as 8001:8001.
+- From inside Docker, operations-service calls ERPNext via the internal address http://frontend:8080 (service-name DNS).
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+Why this exists
+- The desktop app never talks to ERPNext containers directly; it talks to your middleware.
+- Using frontend:8080 avoids hostnames like localhost inside containers and keeps traffic inside the Docker network.
+
+Ports summary (as used in this repo)
+- Host → ERPNext UI: localhost:8081  -> frontend:8080 (Nginx)
+- Host → Gateway API: localhost:8001 -> operations-service:8001 (FastAPI)
+- Docker network → ERPNext app: backend:8000
+- Docker network → Socket.IO: websocket:9000 (via frontend /socket.io)
+
+Host vs Docker network addressing (localhost vs service-name DNS)
+
+Key idea
+- "localhost" always means "this same machine/network namespace".
+	- On your laptop (host): localhost == your laptop.
+	- Inside a container: localhost == that container itself (NOT your laptop, and NOT other containers).
+
+Why operations-service calls ERPNext with http://frontend:8080
+- operations-service runs inside Docker, on frappe_network.
+- In Docker Compose, each service name becomes a DNS name on the same network.
+	- So "frontend" resolves to the frontend container IP.
+	- Port 8080 is the Nginx listen port inside that container.
+
+Why humans use http://localhost:8081 for ERPNext
+- In compose, frontend publishes a host port mapping like:
+	- "8081:8080"  (host_port:container_port)
+- This means:
+	- Requests to host localhost:8081 get forwarded into the frontend container port 8080.
+
+Why Avalonia uses http://localhost:8001 for Gateway API
+- operations-service publishes:
+	- "8001:8001"
+- So Avalonia (running on the host) can call localhost:8001 and reach the container.
+
+Visual map (who can see what)
+
+[Host machine]
+	Browser/Avalonia
+		 |  http://localhost:8081
+		 v
+	Docker port publish -> (frontend container :8080)
+
+[Docker network: frappe_network]
+	operations-service container
+		 |  http://frontend:8080   (service-name DNS)
+		 v
+	frontend container (nginx)
+		 |  http://backend:8000 / http://websocket:9000
+		 v
+	backend + websocket containers
+
+Interview one-liners
+- "localhost depends on where you are: host vs container. Inside a container, localhost is that container."
+- "Compose service discovery gives you DNS by service name (frontend, db, redis-queue) when services share a network."

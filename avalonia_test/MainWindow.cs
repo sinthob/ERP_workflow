@@ -486,7 +486,7 @@ public sealed class MainWindow : Window
                 return;
             }
 
-            _contentArea.Children.Add(MakeWOKanbanBoard(rows, salesOrder));
+            _contentArea.Children.Add(MakeWOKanbanBoard(rows, salesOrder, gen));
         }
         catch (Exception ex)
         {
@@ -1022,7 +1022,7 @@ public sealed class MainWindow : Window
 
     // ---- Work Order Kanban board ----
 
-    private Grid MakeWOKanbanBoard(List<WorkOrderRow> rows, string salesOrder)
+    private Grid MakeWOKanbanBoard(List<WorkOrderRow> rows, string salesOrder, int gen)
     {
         var inProgressSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "In Process" };
         var completedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Completed", "Closed" };
@@ -1042,9 +1042,9 @@ public sealed class MainWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition(10, GridUnitType.Pixel));
         grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
 
-        var col0 = MakeWOColumn("TO DO", todoColor, todo, salesOrder);
-        var col1 = MakeWOColumn("IN PROGRESS", inProgressColor, inProgress, salesOrder);
-        var col2 = MakeWOColumn("COMPLETED", completedColor, completed, salesOrder);
+        var col0 = MakeWOColumn("TO DO", todoColor, todo, salesOrder, gen);
+        var col1 = MakeWOColumn("IN PROGRESS", inProgressColor, inProgress, salesOrder, gen);
+        var col2 = MakeWOColumn("COMPLETED", completedColor, completed, salesOrder, gen);
 
         Grid.SetColumn(col0, 0);
         Grid.SetColumn(col1, 2);
@@ -1055,7 +1055,7 @@ public sealed class MainWindow : Window
         return grid;
     }
 
-    private StackPanel MakeWOColumn(string label, Color headerColor, List<WorkOrderRow> wos, string salesOrder)
+    private StackPanel MakeWOColumn(string label, Color headerColor, List<WorkOrderRow> wos, string salesOrder, int gen)
     {
         var column = new StackPanel { Spacing = 8 };
 
@@ -1120,13 +1120,13 @@ public sealed class MainWindow : Window
         else
         {
             foreach (var wo in wos)
-                column.Children.Add(MakeWOCard(wo, headerColor, salesOrder));
+                column.Children.Add(MakeWOCard(wo, headerColor, salesOrder, gen));
         }
 
         return column;
     }
 
-    private Border MakeWOCard(WorkOrderRow wo, Color accentColor, string salesOrder)
+    private Border MakeWOCard(WorkOrderRow wo, Color accentColor, string salesOrder, int gen)
     {
         var content = new StackPanel { Spacing = 4, Margin = new Thickness(12, 10, 12, 10) };
 
@@ -1203,6 +1203,17 @@ public sealed class MainWindow : Window
                 TextWrapping = TextWrapping.Wrap,
             });
 
+        // Planned dates (loaded lazily from /work-orders/{name})
+        var datesTb = new TextBlock
+        {
+            Text = "Start: —   End: —",
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 140)),
+            TextWrapping = TextWrapping.Wrap,
+        };
+        content.Children.Add(datesTb);
+        _ = LoadWOPlannedDatesAsync(wo.Name, datesTb, gen);
+
         // Divider
         content.Children.Add(new Separator { Margin = new Thickness(0, 4, 0, 2) });
 
@@ -1249,6 +1260,52 @@ public sealed class MainWindow : Window
         card.PointerEntered += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(120, accentColor.R, accentColor.G, accentColor.B));
         card.PointerExited += (s, _) => ((Border)s!).BorderBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 210));
         return card;
+    }
+
+    private async System.Threading.Tasks.Task LoadWOPlannedDatesAsync(string workOrderName, TextBlock target, int gen)
+    {
+        try
+        {
+            var doc = await _api.GetJsonAsync<System.Text.Json.JsonElement>($"/work-orders/{workOrderName}");
+            if (gen != _navGen) return; // navigated away
+            if (doc.ValueKind != System.Text.Json.JsonValueKind.Object) return;
+
+            if (!doc.TryGetProperty("data", out var data) || data.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return;
+
+            var start = ReadErpDateString(data, "planned_start_date");
+            var end = ReadErpDateString(data, "expected_delivery_date");
+
+            // If both missing, keep placeholder but make it subtle.
+            if (string.IsNullOrWhiteSpace(start) && string.IsNullOrWhiteSpace(end))
+            {
+                target.Text = "Start: —   End: —";
+                return;
+            }
+
+            target.Text = $"Start: {start ?? "—"}   End: {end ?? "—"}";
+        }
+        catch
+        {
+            // swallow — this is UI-only enrichment
+        }
+    }
+
+    private static string? ReadErpDateString(System.Text.Json.JsonElement obj, string prop)
+    {
+        if (!obj.TryGetProperty(prop, out var v))
+            return null;
+
+        // ERPNext typically returns yyyy-MM-dd or yyyy-MM-dd HH:mm:ss
+        if (v.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            var s = v.GetString();
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            // Keep only date portion for compact card display
+            return s.Length >= 10 ? s.Substring(0, 10) : s;
+        }
+
+        return null;
     }
 
     // ---- Job Card card ----

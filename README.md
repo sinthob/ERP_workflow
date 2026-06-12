@@ -100,7 +100,122 @@ All services run on a shared Docker network (`frappe_network`), enabling hostnam
 
 ---
 
-## English Version (Expanded Guide)
+## Example End-to-End Flow (English)
+
+### Scenario: Transition Work Order status from UI
+
+1. User action in Desktop UI
+
+- Operator selects a Work Order and requests a state change, for example `Not Started` -> `In Process`.
+
+2. UI sends request to Middleware
+
+- UI client calls Gateway endpoint:
+
+```http
+POST /work-orders/WO-0001/transition
+Content-Type: application/json
+
+{
+  "to_status": "In Process"
+}
+```
+
+3. Middleware validates workflow rule
+
+- Gateway checks whether transition is allowed using `WORK_ORDER_WORKFLOW.can_transition(from_status, to_status)`.
+- If invalid, request is rejected with validation error.
+
+4. Middleware calls ERPNext
+
+- Gateway uses ERP client to call ERP method via `force_wo_status(name, status)`.
+- ERP status is updated through configured API method and returned upstream.
+
+5. Middleware returns normalized response
+
+```json
+{
+  "ok": true,
+  "from_status": "Not Started",
+  "to_status": "In Process",
+  "work_order": {
+    "name": "WO-0001",
+    "status": "In Process"
+  }
+}
+```
+
+### Key code touchpoints
+
+- UI client request layer: `avalonia_test/ApiClient.cs`
+- Gateway routes and orchestration: `services/gateway-api/main.py`
+- Workflow policy and transition rules: `services/gateway-api/workflow_engine.py`
+- ERP integration client: `services/gateway-api/erpnext_client.py`
+
+### Failure path example
+
+- Invalid transition (for example `Completed` -> `In Process`) is blocked in middleware.
+- Upstream ERP/network failures are converted to readable API errors for UI consumption.
+
+---
+
+## Middleware Code Example
+
+### English
+
+The snippets below show how the middleware enforces workflow rules before calling ERPNext.
+
+1. Route orchestration (Gateway)
+
+```python
+@app.post("/work-orders/{name}/transition", response_model=TransitionResult)
+async def transition_work_order(name: str, body: TransitionRequest, erp: ERPNextClient = Depends(get_erp)):
+  raw = await erp.get_doc("Work Order", name)
+  data = raw.get("data", raw)
+  from_status = str(data.get("status") or "Draft")
+  to_status = body.to_status
+
+  if not WORK_ORDER_WORKFLOW.can_transition(from_status, to_status):
+    raise HTTPException(status_code=400, detail=f"Transition not allowed: {from_status} -> {to_status}")
+
+  await erp.force_wo_status(name, to_status)
+  updated = await erp.get_doc("Work Order", name)
+  updated_data = updated.get("data", updated)
+
+  return TransitionResult(name=name, from_status=from_status, to_status=to_status, status=updated_data.get("status"))
+```
+
+2. Workflow policy
+
+```python
+WORK_ORDER_WORKFLOW = WorkflowDefinition(
+  columns=[("Draft", "Draft"), ("Not Started", "Not Started"), ("In Process", "In Process"), ("Completed", "Completed"), ("Cancelled", "Cancelled"), ("Other", "Other")],
+  allowed_transitions={
+    "Draft": {"Not Started", "In Process", "Completed", "Cancelled"},
+    "Not Started": {"In Process", "Cancelled"},
+    "In Process": {"Completed", "Cancelled"},
+    "Completed": set(),
+    "Cancelled": set(),
+  },
+)
+```
+
+3. ERP call layer
+
+```python
+async def force_wo_status(self, name: str, status: str) -> dict[str, Any]:
+  await self._ensure_force_status_script()
+  async with httpx.AsyncClient(timeout=self._timeout) as client:
+    resp = await client.post(
+      self._url(f"/api/method/{_GW_SCRIPT_NAME}"),
+      data={"wo_name": name, "status": status},
+      headers=self._auth_header,
+    )
+    resp.raise_for_status()
+    return resp.json()
+```
+
+Reference files: `services/gateway-api/main.py`, `services/gateway-api/workflow_engine.py`, `services/gateway-api/erpnext_client.py`
 
 ## Quick Start (Recommended Full Docker Setup)
 
@@ -374,6 +489,67 @@ Requires Docker stack to be running first.
 
 ---
 
+---
+
+## ตัวอย่างการทำงานแบบ End-to-End (ภาษาไทย)
+
+### กรณีตัวอย่าง: เปลี่ยนสถานะ Work Order จาก UI
+
+1. ผู้ใช้สั่งงานจาก Desktop UI
+
+- ผู้ใช้เลือก Work Order แล้วสั่งเปลี่ยนสถานะ เช่น `Not Started` -> `In Process`
+
+2. UI ส่ง request ไปที่ Middleware
+
+- UI เรียก endpoint ของ Gateway:
+
+```http
+POST /work-orders/WO-0001/transition
+Content-Type: application/json
+
+{
+  "to_status": "In Process"
+}
+```
+
+3. Middleware ตรวจสอบกติกา workflow
+
+- Gateway ตรวจว่า transition นี้อนุญาตหรือไม่ด้วย `WORK_ORDER_WORKFLOW.can_transition(from_status, to_status)`
+- ถ้าไม่ผ่านกติกา ระบบจะตีกลับเป็น validation error
+
+4. Middleware เรียกต่อไป ERPNext
+
+- Gateway ใช้ ERP client เรียกเมทอด `force_wo_status(name, status)`
+- ERP อัปเดตสถานะและส่งผลกลับมาที่ Gateway
+
+5. Middleware ส่งผลลัพธ์ที่จัดรูปแล้วกลับไป UI
+
+```json
+{
+  "ok": true,
+  "from_status": "Not Started",
+  "to_status": "In Process",
+  "work_order": {
+    "name": "WO-0001",
+    "status": "In Process"
+  }
+}
+```
+
+### จุดโค้ดสำคัญที่เกี่ยวข้อง
+
+- ชั้นเรียก API จาก UI: `avalonia_test/ApiClient.cs`
+- ชั้น route และ orchestration ใน Gateway: `services/gateway-api/main.py`
+- กติกา workflow และ transition: `services/gateway-api/workflow_engine.py`
+- ชั้นเชื่อมต่อ ERP: `services/gateway-api/erpnext_client.py`
+
+### ตัวอย่างเส้นทางเมื่อเกิดข้อผิดพลาด
+
+- ถ้าเปลี่ยนสถานะผิดกติกา (เช่น `Completed` -> `In Process`) middleware จะ block ทันที
+- ถ้า ERP หรือ network มีปัญหา Gateway จะจัดรูป error ให้ UI แสดงผลได้ง่าย
+
+---
+
 ## Quick Start (วิธีแนะนำ Full Docker)
 
 Prerequisites: **Docker Desktop** + `docker compose`
@@ -530,6 +706,119 @@ dotnet run
 Swagger UI: http://localhost:8001/docs
 
 ---
+
+## ตัวอย่างการทำงานแบบ End-to-End (ภาษาไทย)
+
+### กรณีตัวอย่าง: เปลี่ยนสถานะ Work Order จาก UI
+
+1. ผู้ใช้สั่งงานจาก Desktop UI
+
+- ผู้ใช้เลือก Work Order แล้วสั่งเปลี่ยนสถานะ เช่น `Not Started` -> `In Process`
+
+2. UI ส่ง request ไปที่ Middleware
+
+- UI เรียก endpoint ของ Gateway:
+
+```http
+POST /work-orders/WO-0001/transition
+Content-Type: application/json
+
+{
+  "to_status": "In Process"
+}
+```
+
+3. Middleware ตรวจสอบกติกา workflow
+
+- Gateway ตรวจว่า transition นี้อนุญาตหรือไม่ด้วย `WORK_ORDER_WORKFLOW.can_transition(from_status, to_status)`
+- ถ้าไม่ผ่านกติกา ระบบจะตีกลับเป็น validation error
+
+4. Middleware เรียกต่อไป ERPNext
+
+- Gateway ใช้ ERP client เรียกเมทอด `force_wo_status(name, status)`
+- ERP อัปเดตสถานะและส่งผลกลับมาที่ Gateway
+
+5. Middleware ส่งผลลัพธ์ที่จัดรูปแล้วกลับไป UI
+
+```json
+{
+  "ok": true,
+  "from_status": "Not Started",
+  "to_status": "In Process",
+  "work_order": {
+    "name": "WO-0001",
+    "status": "In Process"
+  }
+}
+```
+
+### จุดโค้ดสำคัญที่เกี่ยวข้อง
+
+- ชั้นเรียก API จาก UI: `avalonia_test/ApiClient.cs`
+- ชั้น route และ orchestration ใน Gateway: `services/gateway-api/main.py`
+- กติกา workflow และ transition: `services/gateway-api/workflow_engine.py`
+- ชั้นเชื่อมต่อ ERP: `services/gateway-api/erpnext_client.py`
+
+### ตัวอย่างเส้นทางเมื่อเกิดข้อผิดพลาด
+
+- ถ้าเปลี่ยนสถานะผิดกติกา (เช่น `Completed` -> `In Process`) middleware จะ block ทันที
+- ถ้า ERP หรือ network มีปัญหา Gateway จะจัดรูป error ให้ UI แสดงผลได้ง่าย
+
+---
+
+### โค้ดตัวอย่างด้านล่างแสดงให้เห็นว่า middleware ตรวจสอบกติกา workflow ก่อนเรียก ERPNext
+
+1. ชั้น route และ orchestration (Gateway)
+
+```python
+@app.post("/work-orders/{name}/transition", response_model=TransitionResult)
+async def transition_work_order(name: str, body: TransitionRequest, erp: ERPNextClient = Depends(get_erp)):
+  raw = await erp.get_doc("Work Order", name)
+  data = raw.get("data", raw)
+  from_status = str(data.get("status") or "Draft")
+  to_status = body.to_status
+
+  if not WORK_ORDER_WORKFLOW.can_transition(from_status, to_status):
+    raise HTTPException(status_code=400, detail=f"Transition not allowed: {from_status} -> {to_status}")
+
+  await erp.force_wo_status(name, to_status)
+  updated = await erp.get_doc("Work Order", name)
+  updated_data = updated.get("data", updated)
+
+  return TransitionResult(name=name, from_status=from_status, to_status=to_status, status=updated_data.get("status"))
+```
+
+2. กติกา workflow
+
+```python
+WORK_ORDER_WORKFLOW = WorkflowDefinition(
+  columns=[("Draft", "Draft"), ("Not Started", "Not Started"), ("In Process", "In Process"), ("Completed", "Completed"), ("Cancelled", "Cancelled"), ("Other", "Other")],
+  allowed_transitions={
+    "Draft": {"Not Started", "In Process", "Completed", "Cancelled"},
+    "Not Started": {"In Process", "Cancelled"},
+    "In Process": {"Completed", "Cancelled"},
+    "Completed": set(),
+    "Cancelled": set(),
+  },
+)
+```
+
+3. ชั้นเรียก ERP
+
+```python
+async def force_wo_status(self, name: str, status: str) -> dict[str, Any]:
+  await self._ensure_force_status_script()
+  async with httpx.AsyncClient(timeout=self._timeout) as client:
+    resp = await client.post(
+      self._url(f"/api/method/{_GW_SCRIPT_NAME}"),
+      data={"wo_name": name, "status": status},
+      headers=self._auth_header,
+    )
+    resp.raise_for_status()
+    return resp.json()
+```
+
+## ไฟล์อ้างอิง: `services/gateway-api/main.py`, `services/gateway-api/workflow_engine.py`, `services/gateway-api/erpnext_client.py`
 
 ## เกี่ยวกับ Desktop UI (Avalonia)
 
